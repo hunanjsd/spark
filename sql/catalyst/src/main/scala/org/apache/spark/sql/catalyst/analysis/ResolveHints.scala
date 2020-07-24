@@ -144,6 +144,7 @@ object ResolveHints {
     }
 
     def apply(plan: LogicalPlan): LogicalPlan = plan resolveOperatorsUp {
+      /** 解析 sql 语句中 hint  */
       case h: UnresolvedHint if STRATEGY_HINT_NAMES.contains(h.name.toUpperCase(Locale.ROOT)) =>
         if (h.parameters.isEmpty) {
           // If there is no table alias specified, apply the hint on the entire subtree.
