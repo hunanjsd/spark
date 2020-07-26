@@ -576,25 +576,29 @@ class JoinHintSuite extends PlanTest with SharedSparkSession with AdaptiveSparkP
       Seq((1, "4"), (2, "2")).toDF("key", "value").createTempView("t1")
       Seq((1, "1"), (2, "12.3"), (2, "123")).toDF("key", "value").createTempView("t2")
       val df1 = sql("SELECT /*+ shuffle_replicate_nl(t1) */ * from t1 join t2 ON t1.key = t2.key")
+      df1.explain()
+      df1.show(10)
       val df2 = sql("SELECT * from t1 join t2 ON t1.key = t2.key")
+      df2.explain()
+      df2.show(10)
       assert(df1.collect().size == df2.collect().size)
 
-      val df3 = sql("SELECT /*+ shuffle_replicate_nl(t1) */ * from t1 join t2")
+      val df3 = sql("SELECT /*+ shuffle_replicate_nl(t1)  * from t1 join t2")
       val df4 = sql("SELECT * from t1 join t2")
       assert(df3.collect().size == df4.collect().size)
 
-      val df5 = sql("SELECT /*+ shuffle_replicate_nl(t1) */ * from t1 join t2 ON t1.key < t2.key")
+      val df5 = sql("SELECT + shuffle_replicate_nl(t1)  * from t1 join t2 ON t1.key < t2.key")
       val df6 = sql("SELECT * from t1 join t2 ON t1.key < t2.key")
       assert(df5.collect().size == df6.collect().size)
 
-      val df7 = sql("SELECT /*+ shuffle_replicate_nl(t1) */ * from t1 join t2 ON t1.key < 2")
+      val df7 = sql("SELECT + shuffle_replicate_nl(t1)  * from t1 join t2 ON t1.key < 2")
       val df8 = sql("SELECT * from t1 join t2 ON t1.key < 2")
       assert(df7.collect().size == df8.collect().size)
 
 
-      val df9 = sql("SELECT /*+ shuffle_replicate_nl(t1) */ * from t1 join t2 ON t2.key < 2")
+      val df9 = sql("SELECT + shuffle_replicate_nl(t1)  * from t1 join t2 ON t2.key < 2")
       val df10 = sql("SELECT * from t1 join t2 ON t2.key < 2")
-      assert(df9.collect().size == df10.collect().size)
+      assert(df9.collect().size == df10.collect().size)*/
     }
   }
 }

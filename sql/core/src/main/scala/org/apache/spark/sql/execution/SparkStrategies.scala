@@ -182,7 +182,7 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
         right: LogicalPlan): Option[BuildSide] = {
       if (wantToBuildLeft && wantToBuildRight) {
         // returns the smaller side base on its estimated physical size, if we want to build the
-        // both sides.
+        // both sides. 如果两边都可以做 broadcast 就选一个小的表做
         Some(getSmallerSide(left, right))
       } else if (wantToBuildLeft) {
         Some(BuildLeft)
