@@ -46,6 +46,7 @@ abstract class ParsedStatement extends LogicalPlan {
     case other => other
   }
 
+  /** 输入和输出都是 empty */
   override def output: Seq[Attribute] = Seq.empty
 
   override def children: Seq[LogicalPlan] = Seq.empty

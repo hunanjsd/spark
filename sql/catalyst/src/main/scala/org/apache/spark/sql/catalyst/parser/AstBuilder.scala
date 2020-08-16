@@ -2741,6 +2741,7 @@ class AstBuilder(conf: SQLConf) extends SqlBaseBaseVisitor[AnyRef] with Logging 
     (filtered, path)
   }
 
+  /** 解析创建 create 的条件: optitions、tblproperties、partitioned by 等 */
   override def visitCreateTableClauses(ctx: CreateTableClausesContext): TableClauses = {
     checkDuplicateClauses(ctx.TBLPROPERTIES, "TBLPROPERTIES", ctx)
     checkDuplicateClauses(ctx.OPTIONS, "OPTIONS", ctx)
@@ -2762,6 +2763,7 @@ class AstBuilder(conf: SQLConf) extends SqlBaseBaseVisitor[AnyRef] with Logging 
   }
 
   /**
+   * 返回一个 create table 的 logical plan
    * Create a table, returning a [[CreateTableStatement]] logical plan.
    *
    * Expected format:
@@ -2790,6 +2792,7 @@ class AstBuilder(conf: SQLConf) extends SqlBaseBaseVisitor[AnyRef] with Logging 
     }
     val schema = Option(ctx.colTypeList()).map(createSchema)
     val provider = Option(ctx.tableProvider).map(_.multipartIdentifier.getText)
+    /** 获取 create table 的 clauses  */
     val (partitioning, bucketSpec, properties, options, location, comment) =
       visitCreateTableClauses(ctx.createTableClauses())
 

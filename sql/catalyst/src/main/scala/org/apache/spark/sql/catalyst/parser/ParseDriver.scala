@@ -109,6 +109,10 @@ abstract class AbstractSqlParser(conf: SQLConf) extends ParserInterface with Log
     try {
       try {
         // first, try parsing with potentially faster SLL mode
+        /*
+         * LL是自顶向下（top-down）的语法分析方法，其中的第一个L表示分析器从左（Left）至右单向读取每行文本，第二个L表示最左派生（Leftmost derivation），ANTLR生成的就是LL分析器。
+         * SSL 它与ANTLR 3的策略相似，但是去掉了回溯，虽然名字里有Strong，但是功能不如LL(*)分析器强大，优点是速度很快。当SLL解析失败了，说明有可能是语法错误，也可能是SLL的能力有限，这个时候就会切换到全功能模式
+         * */
         parser.getInterpreter.setPredictionMode(PredictionMode.SLL)
         toResult(parser)
       }
@@ -118,7 +122,7 @@ abstract class AbstractSqlParser(conf: SQLConf) extends ParserInterface with Log
           tokenStream.seek(0) // rewind input stream
           parser.reset()
 
-          // Try Again.
+          // Try Again. 切换到 LL 模式继续解析
           parser.getInterpreter.setPredictionMode(PredictionMode.LL)
           toResult(parser)
       }

@@ -80,7 +80,9 @@ class DDLParserSuite extends AnalysisTest {
       sql,
       TableSpec(
         Seq("my_tab"),
-        Some(new StructType().add("a", IntegerType).add("b", StringType)),
+        Some(new StructType()
+          .add("a", IntegerType)
+          .add("b", StringType)),
         Seq.empty[Transform],
         None,
         Map.empty[String, String],
@@ -176,7 +178,9 @@ class DDLParserSuite extends AnalysisTest {
 
     val expectedTableSpec = TableSpec(
       Seq("my_tab"),
-      Some(new StructType().add("a", IntegerType).add("b", StringType)),
+      Some(new StructType()
+        .add("a", IntegerType)
+        .add("b", StringType)),
       Seq.empty[Transform],
       Some(BucketSpec(5, Seq("a"), Seq("b"))),
       Map.empty[String, String],
@@ -407,7 +411,7 @@ class DDLParserSuite extends AnalysisTest {
   }
 
   private def testCreateOrReplaceDdl(
-      sqlStatement: String,
+      sqlStatement: String, //CREATE TABLE my_tab(a INT COMMENT 'test', b STRING NOT NULL) USING parquet
       tableSpec: TableSpec,
       expectedIfNotExists: Boolean): Unit = {
     val parsedPlan = parsePlan(sqlStatement)
@@ -837,7 +841,7 @@ class DDLParserSuite extends AnalysisTest {
         InsertIntoStatement(
           UnresolvedRelation(Seq("testcat", "ns1", "ns2", "tbl")),
           Map.empty,
-          Project(Seq(UnresolvedStar(None)), UnresolvedRelation(Seq("source"))),
+          Project(Seq(UnresolvedStar(None)), UnresolvedRelation(Seq("source"))), // Seq(UnresolvedStar(None)) 代表 *
           overwrite = false, ifPartitionNotExists = false))
     }
   }

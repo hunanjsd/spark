@@ -39,7 +39,7 @@ class UnresolvedException[TreeType <: TreeNode[_]](tree: TreeType, function: Str
 /**
  * Holds the name of a relation that has yet to be looked up in a catalog.
  *
- * @param multipartIdentifier table name
+ * @param multipartIdentifier table name, 包含了 catalog、table 名
  */
 case class UnresolvedRelation(
     multipartIdentifier: Seq[String]) extends LeafNode with NamedRelation {
