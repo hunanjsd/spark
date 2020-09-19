@@ -15,15 +15,21 @@
 # limitations under the License.
 #
 
+import sys
+
 from abc import ABCMeta
 
-from pyspark import keyword_only
+from pyspark import keyword_only, since
 from pyspark.ml import Predictor, PredictionModel
 from pyspark.ml.base import _PredictorParams
-from pyspark.ml.param.shared import *
+from pyspark.ml.param.shared import HasFeaturesCol, HasLabelCol, HasPredictionCol, HasWeightCol, \
+    Param, Params, TypeConverters, HasMaxIter, HasTol, HasFitIntercept, HasAggregationDepth, \
+    HasBlockSize, HasRegParam, HasSolver, HasStepSize, HasSeed, HasElasticNetParam, \
+    HasStandardization, HasLoss, HasVarianceCol
 from pyspark.ml.tree import _DecisionTreeModel, _DecisionTreeParams, \
     _TreeEnsembleModel, _RandomForestParams, _GBTParams, _TreeRegressorParams
-from pyspark.ml.util import *
+from pyspark.ml.util import JavaMLWritable, JavaMLReadable, HasTrainingSummary, \
+    GeneralJavaMLWritable
 from pyspark.ml.wrapper import JavaEstimator, JavaModel, \
     JavaPredictor, JavaPredictionModel, JavaWrapper
 from pyspark.ml.common import inherit_doc
@@ -42,45 +48,41 @@ __all__ = ['AFTSurvivalRegression', 'AFTSurvivalRegressionModel',
            'FMRegressor', 'FMRegressionModel']
 
 
-class Regressor(Predictor, _PredictorParams):
+class Regressor(Predictor, _PredictorParams, metaclass=ABCMeta):
     """
     Regressor for regression tasks.
 
     .. versionadded:: 3.0.0
     """
+    pass
 
-    __metaclass__ = ABCMeta
 
-
-class RegressionModel(PredictionModel, _PredictorParams):
+class RegressionModel(PredictionModel, _PredictorParams, metaclass=ABCMeta):
     """
     Model produced by a ``Regressor``.
 
     .. versionadded:: 3.0.0
     """
+    pass
 
-    __metaclass__ = ABCMeta
 
-
-class _JavaRegressor(Regressor, JavaPredictor):
+class _JavaRegressor(Regressor, JavaPredictor, metaclass=ABCMeta):
     """
     Java Regressor for regression tasks.
 
     .. versionadded:: 3.0.0
     """
+    pass
 
-    __metaclass__ = ABCMeta
 
-
-class _JavaRegressionModel(RegressionModel, JavaPredictionModel):
+class _JavaRegressionModel(RegressionModel, JavaPredictionModel, metaclass=ABCMeta):
     """
     Java Model produced by a ``_JavaRegressor``.
     To be mixed in with :class:`pyspark.ml.JavaModel`
 
     .. versionadded:: 3.0.0
     """
-
-    __metaclass__ = ABCMeta
+    pass
 
 
 class _LinearRegressionParams(_PredictorParams, HasRegParam, HasElasticNetParam, HasMaxIter,

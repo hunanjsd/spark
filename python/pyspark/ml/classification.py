@@ -16,19 +16,24 @@
 #
 
 import operator
+import sys
+import uuid
 import warnings
 from abc import ABCMeta, abstractmethod, abstractproperty
 from multiprocessing.pool import ThreadPool
 
-from pyspark import keyword_only
+from pyspark import keyword_only, since, SparkContext
 from pyspark.ml import Estimator, Predictor, PredictionModel, Model
-from pyspark.ml.param.shared import *
+from pyspark.ml.param.shared import HasRawPredictionCol, HasProbabilityCol, HasThresholds, \
+    HasRegParam, HasMaxIter, HasFitIntercept, HasTol, HasStandardization, HasWeightCol, \
+    HasAggregationDepth, HasThreshold, HasBlockSize, Param, Params, TypeConverters, \
+    HasElasticNetParam, HasSeed, HasStepSize, HasSolver, HasParallelism
 from pyspark.ml.tree import _DecisionTreeModel, _DecisionTreeParams, \
     _TreeEnsembleModel, _RandomForestParams, _GBTParams, \
     _HasVarianceImpurity, _TreeClassifierParams
 from pyspark.ml.regression import _FactorizationMachinesParams, DecisionTreeRegressionModel
-from pyspark.ml.util import *
 from pyspark.ml.base import _PredictorParams
+from pyspark.ml.util import JavaMLWritable, JavaMLReadable, HasTrainingSummary
 from pyspark.ml.wrapper import JavaParams, \
     JavaPredictor, JavaPredictionModel, JavaWrapper
 from pyspark.ml.common import inherit_doc, _java2py, _py2java
@@ -68,13 +73,11 @@ class _ClassifierParams(HasRawPredictionCol, _PredictorParams):
 
 
 @inherit_doc
-class Classifier(Predictor, _ClassifierParams):
+class Classifier(Predictor, _ClassifierParams, metaclass=ABCMeta):
     """
     Classifier for classification tasks.
     Classes are indexed {0, 1, ..., numClasses - 1}.
     """
-
-    __metaclass__ = ABCMeta
 
     @since("3.0.0")
     def setRawPredictionCol(self, value):
@@ -85,13 +88,11 @@ class Classifier(Predictor, _ClassifierParams):
 
 
 @inherit_doc
-class ClassificationModel(PredictionModel, _ClassifierParams):
+class ClassificationModel(PredictionModel, _ClassifierParams, metaclass=ABCMeta):
     """
     Model produced by a ``Classifier``.
     Classes are indexed {0, 1, ..., numClasses - 1}.
     """
-
-    __metaclass__ = ABCMeta
 
     @since("3.0.0")
     def setRawPredictionCol(self, value):
@@ -128,12 +129,11 @@ class _ProbabilisticClassifierParams(HasProbabilityCol, HasThresholds, _Classifi
 
 
 @inherit_doc
-class ProbabilisticClassifier(Classifier, _ProbabilisticClassifierParams):
+class ProbabilisticClassifier(Classifier, _ProbabilisticClassifierParams,
+                              metaclass=ABCMeta):
     """
     Probabilistic Classifier for classification tasks.
     """
-
-    __metaclass__ = ABCMeta
 
     @since("3.0.0")
     def setProbabilityCol(self, value):
@@ -152,12 +152,11 @@ class ProbabilisticClassifier(Classifier, _ProbabilisticClassifierParams):
 
 @inherit_doc
 class ProbabilisticClassificationModel(ClassificationModel,
-                                       _ProbabilisticClassifierParams):
+                                       _ProbabilisticClassifierParams,
+                                       metaclass=ABCMeta):
     """
     Model produced by a ``ProbabilisticClassifier``.
     """
-
-    __metaclass__ = ABCMeta
 
     @since("3.0.0")
     def setProbabilityCol(self, value):
@@ -183,13 +182,11 @@ class ProbabilisticClassificationModel(ClassificationModel,
 
 
 @inherit_doc
-class _JavaClassifier(Classifier, JavaPredictor):
+class _JavaClassifier(Classifier, JavaPredictor, metaclass=ABCMeta):
     """
     Java Classifier for classification tasks.
     Classes are indexed {0, 1, ..., numClasses - 1}.
     """
-
-    __metaclass__ = ABCMeta
 
     @since("3.0.0")
     def setRawPredictionCol(self, value):
@@ -224,12 +221,12 @@ class _JavaClassificationModel(ClassificationModel, JavaPredictionModel):
 
 
 @inherit_doc
-class _JavaProbabilisticClassifier(ProbabilisticClassifier, _JavaClassifier):
+class _JavaProbabilisticClassifier(ProbabilisticClassifier, _JavaClassifier,
+                                   metaclass=ABCMeta):
     """
     Java Probabilistic Classifier for classification tasks.
     """
-
-    __metaclass__ = ABCMeta
+    pass
 
 
 @inherit_doc
