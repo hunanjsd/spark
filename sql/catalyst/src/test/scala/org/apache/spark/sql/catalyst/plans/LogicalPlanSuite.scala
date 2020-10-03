@@ -28,8 +28,8 @@ import org.apache.spark.sql.types.IntegerType
 class LogicalPlanSuite extends SparkFunSuite {
   private var invocationCount = 0
   private val function: PartialFunction[LogicalPlan, LogicalPlan] = {
-    case p: Project =>
-      invocationCount += 1
+    case p @ Project(_, _) =>
+    invocationCount += 1
       p
   }
 

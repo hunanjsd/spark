@@ -56,8 +56,8 @@ class PlanParserSuite extends AnalysisTest {
   }
 
   test("single comment case one") {
-    val plan = table("a").select(star())
-    assertEqual("-- single comment\nSELECT * FROM a", plan)
+    val plan = table("b").select(star())
+    assertEqual("-- single comment\nSELECT * FROM b", plan)
   }
 
   test("single comment case two") {
