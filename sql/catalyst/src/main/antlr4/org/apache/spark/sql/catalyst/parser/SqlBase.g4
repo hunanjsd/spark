@@ -332,7 +332,7 @@ commentSpec
     : COMMENT STRING
     ;
 
-query
+qusery
     : ctes? queryTerm queryOrganization
     ;
 

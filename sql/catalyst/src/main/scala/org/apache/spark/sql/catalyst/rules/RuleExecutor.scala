@@ -129,7 +129,10 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
     def maxIterationsSetting: String = null
   }
 
-  /** A strategy that is run once and idempotent. */
+  /**
+   * A strategy that is run once and idempotent.
+   * 只 run 一次的 strategy 并且是幂等的
+   * */
   case object Once extends Strategy { val maxIterations = 1 }
 
   /**
@@ -213,6 +216,7 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
         curPlan = batch.rules.foldLeft(curPlan) {
           case (plan, rule) =>
             val startTime = System.nanoTime()
+            // rule 作用在 LogicalPlan 上
             val result = rule(plan)
             val runTime = System.nanoTime() - startTime
             val effective = !result.fastEquals(plan)
