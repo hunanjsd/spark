@@ -60,10 +60,10 @@ public class TaskMemoryManager {
 
   private static final Logger logger = LoggerFactory.getLogger(TaskMemoryManager.class);
 
-  /** The number of bits used to address the page table. */
+  /** The number of bits used to address the page table. 64 位中前 13 位代表页号 */
   private static final int PAGE_NUMBER_BITS = 13;
 
-  /** The number of bits used to encode offsets in data pages. */
+  /** The number of bits used to encode offsets in data pages. 64 位中后 51 位代表页号 */
   @VisibleForTesting
   static final int OFFSET_BITS = 64 - PAGE_NUMBER_BITS;  // 51
 
@@ -76,6 +76,8 @@ public class TaskMemoryManager {
    * maximum page size is limited by the maximum amount of data that can be stored in a long[]
    * array, which is (2^31 - 1) * 8 bytes (or about 17 gigabytes). Therefore, we cap this at 17
    * gigabytes.
+   *
+   * 受限于 java 数组长度:java.lang.Integer.MAX_VALUE=2^31 - 1), 所以内存也长度也被限制了
    */
   public static final long MAXIMUM_PAGE_SIZE_BYTES = ((1L << 31) - 1) * 8L;
 
@@ -370,17 +372,20 @@ public class TaskMemoryManager {
     return encodePageNumberAndOffset(page.pageNumber, offsetInPage);
   }
 
+  /* 将 pageNumber 和 pageOffset 组合成 64 位 */
   @VisibleForTesting
   public static long encodePageNumberAndOffset(int pageNumber, long offsetInPage) {
     assert (pageNumber >= 0) : "encodePageNumberAndOffset called with invalid page";
     return (((long) pageNumber) << OFFSET_BITS) | (offsetInPage & MASK_LONG_LOWER_51_BITS);
   }
 
+  /* 从 64 位中解析出 pageNumber */
   @VisibleForTesting
   public static int decodePageNumber(long pagePlusOffsetAddress) {
     return (int) (pagePlusOffsetAddress >>> OFFSET_BITS);
   }
 
+  /* 从 64 位中解析出 pageOffset */
   private static long decodeOffset(long pagePlusOffsetAddress) {
     return (pagePlusOffsetAddress & MASK_LONG_LOWER_51_BITS);
   }
