@@ -44,6 +44,73 @@ object RuleExecutor {
   }
 }
 
+class PlanChangeLogger[TreeType <: TreeNode[_]] extends Logging {
+
+  private val logLevel = SQLConf.get.planChangeLogLevel
+
+  private val logRules = SQLConf.get.planChangeRules.map(Utils.stringToSeq)
+
+  private val logBatches = SQLConf.get.planChangeBatches.map(Utils.stringToSeq)
+
+  def logRule(ruleName: String, oldPlan: TreeType, newPlan: TreeType): Unit = {
+    if (!newPlan.fastEquals(oldPlan)) {
+      if (logRules.isEmpty || logRules.get.contains(ruleName)) {
+        def message(): String = {
+          s"""
+             |=== Applying Rule $ruleName ===
+             |${sideBySide(oldPlan.treeString, newPlan.treeString).mkString("\n")}
+           """.stripMargin
+        }
+
+        logBasedOnLevel(message)
+      }
+    }
+  }
+
+  def logBatch(batchName: String, oldPlan: TreeType, newPlan: TreeType): Unit = {
+    if (logBatches.isEmpty || logBatches.get.contains(batchName)) {
+      def message(): String = {
+        if (!oldPlan.fastEquals(newPlan)) {
+          s"""
+             |=== Result of Batch $batchName ===
+             |${sideBySide(oldPlan.treeString, newPlan.treeString).mkString("\n")}
+          """.stripMargin
+        } else {
+          s"Batch $batchName has no effect."
+        }
+      }
+
+      logBasedOnLevel(message)
+    }
+  }
+
+  def logMetrics(metrics: QueryExecutionMetrics): Unit = {
+    val totalTime = metrics.time / NANOS_PER_SECOND.toDouble
+    val totalTimeEffective = metrics.timeEffective / NANOS_PER_SECOND.toDouble
+    val message =
+      s"""
+         |=== Metrics of Executed Rules ===
+         |Total number of runs: ${metrics.numRuns}
+         |Total time: $totalTime seconds
+         |Total number of effective runs: ${metrics.numEffectiveRuns}
+         |Total time of effective runs: $totalTimeEffective seconds
+      """.stripMargin
+
+    logBasedOnLevel(message)
+  }
+
+  private def logBasedOnLevel(f: => String): Unit = {
+    logLevel match {
+      case "TRACE" => logTrace(f)
+      case "DEBUG" => logDebug(f)
+      case "INFO" => logInfo(f)
+      case "WARN" => logWarning(f)
+      case "ERROR" => logError(f)
+      case _ => logTrace(f)
+    }
+  }
+}
+
 abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
 
   /**
@@ -62,7 +129,10 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
     def maxIterationsSetting: String = null
   }
 
-  /** A strategy that is run once and idempotent. */
+  /**
+   * A strategy that is run once and idempotent.
+   * 只 run 一次的 strategy 并且是幂等的
+   * */
   case object Once extends Strategy { val maxIterations = 1 }
 
   /**
@@ -124,7 +194,7 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
   def execute(plan: TreeType): TreeType = {
     var curPlan = plan
     val queryExecutionMetrics = RuleExecutor.queryExecutionMeter
-    val planChangeLogger = new PlanChangeLogger()
+    val planChangeLogger = new PlanChangeLogger[TreeType]()
     val tracker: Option[QueryPlanningTracker] = QueryPlanningTracker.get
     val beforeMetrics = RuleExecutor.getCurrentMetrics()
 
@@ -146,6 +216,7 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
         curPlan = batch.rules.foldLeft(curPlan) {
           case (plan, rule) =>
             val startTime = System.nanoTime()
+            // rule 作用在 LogicalPlan 上
             val result = rule(plan)
             val runTime = System.nanoTime() - startTime
             val effective = !result.fastEquals(plan)
@@ -162,7 +233,7 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
             tracker.foreach(_.recordRuleInvocation(rule.ruleName, runTime, effective))
 
             // Run the structural integrity checker against the plan after each rule.
-            if (!isPlanIntegral(result)) {
+            if (effective && !isPlanIntegral(result)) {
               val message = s"After applying rule ${rule.ruleName} in batch ${batch.name}, " +
                 "the structural integrity of the plan is broken."
               throw new TreeNodeException(result, message, null)
@@ -208,70 +279,5 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
     planChangeLogger.logMetrics(RuleExecutor.getCurrentMetrics() - beforeMetrics)
 
     curPlan
-  }
-
-  private class PlanChangeLogger {
-
-    private val logLevel = SQLConf.get.optimizerPlanChangeLogLevel
-
-    private val logRules = SQLConf.get.optimizerPlanChangeRules.map(Utils.stringToSeq)
-
-    private val logBatches = SQLConf.get.optimizerPlanChangeBatches.map(Utils.stringToSeq)
-
-    def logRule(ruleName: String, oldPlan: TreeType, newPlan: TreeType): Unit = {
-      if (logRules.isEmpty || logRules.get.contains(ruleName)) {
-        def message(): String = {
-          s"""
-             |=== Applying Rule ${ruleName} ===
-             |${sideBySide(oldPlan.treeString, newPlan.treeString).mkString("\n")}
-           """.stripMargin
-        }
-
-        logBasedOnLevel(message)
-      }
-    }
-
-    def logBatch(batchName: String, oldPlan: TreeType, newPlan: TreeType): Unit = {
-      if (logBatches.isEmpty || logBatches.get.contains(batchName)) {
-        def message(): String = {
-          if (!oldPlan.fastEquals(newPlan)) {
-            s"""
-               |=== Result of Batch ${batchName} ===
-               |${sideBySide(oldPlan.treeString, newPlan.treeString).mkString("\n")}
-            """.stripMargin
-          } else {
-            s"Batch ${batchName} has no effect."
-          }
-        }
-
-        logBasedOnLevel(message)
-      }
-    }
-
-    def logMetrics(metrics: QueryExecutionMetrics): Unit = {
-      val totalTime = metrics.time / NANOS_PER_SECOND.toDouble
-      val totalTimeEffective = metrics.timeEffective / NANOS_PER_SECOND.toDouble
-      val message =
-        s"""
-           |=== Metrics of Executed Rules ===
-           |Total number of runs: ${metrics.numRuns}
-           |Total time: ${totalTime} seconds
-           |Total number of effective runs: ${metrics.numEffectiveRuns}
-           |Total time of effective runs: ${totalTimeEffective} seconds
-        """.stripMargin
-
-      logBasedOnLevel(message)
-    }
-
-    private def logBasedOnLevel(f: => String): Unit = {
-      logLevel match {
-        case "TRACE" => logTrace(f)
-        case "DEBUG" => logDebug(f)
-        case "INFO" => logInfo(f)
-        case "WARN" => logWarning(f)
-        case "ERROR" => logError(f)
-        case _ => logTrace(f)
-      }
-    }
   }
 }

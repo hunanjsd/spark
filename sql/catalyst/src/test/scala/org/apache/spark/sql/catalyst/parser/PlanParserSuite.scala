@@ -55,9 +55,17 @@ class PlanParserSuite extends AnalysisTest {
     With(plan, ctes)
   }
 
+  test("single comment parse") {
+    val parseLoginPlan: LogicalPlan = parsePlan("select name from student where age > 10 order by id desc")
+    parseLoginPlan transformDown  {
+      case p: LogicalPlan => println(p.nodeName); p
+    }
+  }
+
+
   test("single comment case one") {
-    val plan = table("a").select(star())
-    assertEqual("-- single comment\nSELECT * FROM a", plan)
+    val plan = table("b").select(star())
+    assertEqual("-- single comment\nSELECT * FROM b", plan)
   }
 
   test("single comment case two") {

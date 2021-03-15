@@ -901,11 +901,29 @@ class Column(val expr: Expression) extends Logging {
    *   // result: org.apache.spark.sql.AnalysisException: Ambiguous reference to fields
    * }}}
    *
+   * This method supports adding/replacing nested fields directly e.g.
+   *
+   * {{{
+   *   val df = sql("SELECT named_struct('a', named_struct('a', 1, 'b', 2)) struct_col")
+   *   df.select($"struct_col".withField("a.c", lit(3)).withField("a.d", lit(4)))
+   *   // result: {"a":{"a":1,"b":2,"c":3,"d":4}}
+   * }}}
+   *
+   * However, if you are going to add/replace multiple nested fields, it is more optimal to extract
+   * out the nested struct before adding/replacing multiple fields e.g.
+   *
+   * {{{
+   *   val df = sql("SELECT named_struct('a', named_struct('a', 1, 'b', 2)) struct_col")
+   *   df.select($"struct_col".withField("a", $"struct_col.a".withField("c", lit(3)).withField("d", lit(4))))
+   *   // result: {"a":{"a":1,"b":2,"c":3,"d":4}}
+   * }}}
+   *
    * @group expr_ops
    * @since 3.1.0
    */
   // scalastyle:on line.size.limit
   def withField(fieldName: String, col: Column): Column = withExpr {
+    require(fieldName != null, "fieldName cannot be null")
     require(col != null, "col cannot be null")
     updateFieldsHelper(expr, nameParts(fieldName), name => WithField(name, col.expr))
   }
@@ -913,6 +931,7 @@ class Column(val expr: Expression) extends Logging {
   // scalastyle:off line.size.limit
   /**
    * An expression that drops fields in `StructType` by name.
+   * This is a no-op if schema doesn't contain field name(s).
    *
    * {{{
    *   val df = sql("SELECT named_struct('a', 1, 'b', 2) struct_col")
@@ -948,13 +967,30 @@ class Column(val expr: Expression) extends Logging {
    *   // result: org.apache.spark.sql.AnalysisException: Ambiguous reference to fields
    * }}}
    *
+   * This method supports dropping multiple nested fields directly e.g.
+   *
+   * {{{
+   *   val df = sql("SELECT named_struct('a', named_struct('a', 1, 'b', 2)) struct_col")
+   *   df.select($"struct_col".dropFields("a.b", "a.c"))
+   *   // result: {"a":{"a":1}}
+   * }}}
+   *
+   * However, if you are going to drop multiple nested fields, it is more optimal to extract
+   * out the nested struct before dropping multiple fields from it e.g.
+   *
+   * {{{
+   *   val df = sql("SELECT named_struct('a', named_struct('a', 1, 'b', 2)) struct_col")
+   *   df.select($"struct_col".withField("a", $"struct_col.a".dropFields("b", "c")))
+   *   // result: {"a":{"a":1}}
+   * }}}
+   *
    * @group expr_ops
    * @since 3.1.0
    */
   // scalastyle:on line.size.limit
   def dropFields(fieldNames: String*): Column = withExpr {
-    def dropField(expr: Expression, fieldName: String): UpdateFields =
-      updateFieldsHelper(expr, nameParts(fieldName), name => DropField(name))
+    def dropField(structExpr: Expression, fieldName: String): UpdateFields =
+      updateFieldsHelper(structExpr, nameParts(fieldName), name => DropField(name))
 
     fieldNames.tail.foldLeft(dropField(expr, fieldNames.head)) {
       (resExpr, fieldName) => dropField(resExpr, fieldName)
@@ -972,18 +1008,19 @@ class Column(val expr: Expression) extends Logging {
   }
 
   private def updateFieldsHelper(
-    struct: Expression,
-    namePartsRemaining: Seq[String],
-    valueFunc: String => StructFieldsOperation): UpdateFields = {
+      structExpr: Expression,
+      namePartsRemaining: Seq[String],
+      valueFunc: String => StructFieldsOperation): UpdateFields = {
+
     val fieldName = namePartsRemaining.head
     if (namePartsRemaining.length == 1) {
-      UpdateFields(struct, valueFunc(fieldName) :: Nil)
+      UpdateFields(structExpr, valueFunc(fieldName) :: Nil)
     } else {
       val newValue = updateFieldsHelper(
-        struct = UnresolvedExtractValue(struct, Literal(fieldName)),
+        structExpr = UnresolvedExtractValue(structExpr, Literal(fieldName)),
         namePartsRemaining = namePartsRemaining.tail,
         valueFunc = valueFunc)
-      UpdateFields(struct, WithField(fieldName, newValue) :: Nil)
+      UpdateFields(structExpr, WithField(fieldName, newValue) :: Nil)
     }
   }
 

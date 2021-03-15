@@ -25,6 +25,7 @@ import org.scalatest.concurrent.Eventually
 import org.apache.spark.{DebugFilesystem, SparkConf}
 import org.apache.spark.internal.config.UNSAFE_EXCEPTION_ON_MEMORY_LEAK
 import org.apache.spark.sql.{SparkSession, SQLContext}
+import org.apache.spark.sql.catalyst.expressions.CodegenObjectFactoryMode
 import org.apache.spark.sql.catalyst.optimizer.ConvertToLocalRelation
 import org.apache.spark.sql.internal.{SQLConf, StaticSQLConf}
 
@@ -66,7 +67,10 @@ trait SharedSparkSessionBase
     val conf = new SparkConf()
       .set("spark.hadoop.fs.file.impl", classOf[DebugFilesystem].getName)
       .set(UNSAFE_EXCEPTION_ON_MEMORY_LEAK, true)
+      .set("spark.ui.port", "4244")
+      .set("spark.driver.bindAddress", "127.0.0.1")
       .set(SQLConf.CODEGEN_FALLBACK.key, "false")
+      .set(SQLConf.CODEGEN_FACTORY_MODE.key, CodegenObjectFactoryMode.CODEGEN_ONLY.toString)
       // Disable ConvertToLocalRelation for better test coverage. Test cases built on
       // LocalRelation will exercise the optimization rules better by disabling it as
       // this rule may potentially block testing of other optimization rules such as

@@ -198,6 +198,7 @@ class GenericInternalRow(val values: Array[Any]) extends BaseGenericInternalRow 
 
   def this(size: Int) = this(new Array[Any](size))
 
+  /** override 了 genericGet 方法, 说明这个 GenericInternalRow 用 array 存储数据 */
   override protected def genericGet(ordinal: Int) = values(ordinal)
 
   override def toSeq(fieldTypes: Seq[DataType]): Seq[Any] = values.clone()

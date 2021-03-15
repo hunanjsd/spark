@@ -45,6 +45,7 @@ object JoinType {
   }
 }
 
+/** 定义 join 类型 */
 sealed abstract class JoinType {
   def sql: String
 }

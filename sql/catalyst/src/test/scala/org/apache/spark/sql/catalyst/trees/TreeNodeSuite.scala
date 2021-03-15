@@ -21,12 +21,10 @@ import java.math.BigInteger
 import java.util.UUID
 
 import scala.collection.mutable.ArrayBuffer
-
 import org.json4s.JsonAST._
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods
 import org.json4s.jackson.JsonMethods._
-
 import org.apache.spark.SparkFunSuite
 import org.apache.spark.sql.catalyst.{AliasIdentifier, FunctionIdentifier, InternalRow, TableIdentifier}
 import org.apache.spark.sql.catalyst.catalog._
@@ -40,6 +38,8 @@ import org.apache.spark.sql.catalyst.plans.physical.{IdentityBroadcastMode, Roun
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 import org.apache.spark.storage.StorageLevel
+
+import scala.reflect.internal.Trees
 
 case class Dummy(optKey: Option[Expression]) extends Expression with CodegenFallback {
   override def children: Seq[Expression] = optKey.toSeq
@@ -123,6 +123,7 @@ class TreeNodeSuite extends SparkFunSuite with SQLHelper {
     val actual = new ArrayBuffer[String]()
     val expected = Seq("+", "1", "*", "2", "-", "3", "4")
     val expression = Add(Literal(1), Multiply(Literal(2), Subtract(Literal(3), Literal(4))))
+
     expression transformDown {
       case b: BinaryOperator => actual += b.symbol; b
       case l: Literal => actual += l.toString; l
@@ -734,5 +735,31 @@ class TreeNodeSuite extends SparkFunSuite with SQLHelper {
     val leafCloned = leaf.clone()
     assertDifferentInstance(leaf, leafCloned)
     assert(leaf.child.eq(leafCloned.asInstanceOf[FakeLeafPlan].child))
+  }
+
+  object MalformedClassObject extends Serializable {
+    case class MalformedNameExpression(child: Expression) extends TaggingExpression
+  }
+
+  test("SPARK-32999: TreeNode.nodeName should not throw malformed class name error") {
+    val testTriggersExpectedError = try {
+      classOf[MalformedClassObject.MalformedNameExpression].getSimpleName
+      false
+    } catch {
+      case ex: java.lang.InternalError if ex.getMessage.contains("Malformed class name") =>
+        true
+      case ex: Throwable => throw ex
+    }
+    // This test case only applies on older JDK versions (e.g. JDK8u), and doesn't trigger the
+    // issue on newer JDK versions (e.g. JDK11u).
+    assume(testTriggersExpectedError, "the test case didn't trigger malformed class name error")
+
+    val expr = MalformedClassObject.MalformedNameExpression(Literal(1))
+    try {
+      expr.nodeName
+    } catch {
+      case ex: java.lang.InternalError if ex.getMessage.contains("Malformed class name") =>
+        fail("TreeNode.nodeName should not throw malformed class name error")
+    }
   }
 }

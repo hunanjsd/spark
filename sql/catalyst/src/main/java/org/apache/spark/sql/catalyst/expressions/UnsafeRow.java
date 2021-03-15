@@ -195,6 +195,7 @@ public final class UnsafeRow extends InternalRow implements Externalizable, Kryo
     this.sizeInBytes = sizeInBytes;
   }
 
+  /** 在 UnsafeRow 的 bitSetWidthInBytes 标记 index 上的 field 没有有 value */
   public void setNotNullAt(int i) {
     assertIndexIsValid(i);
     BitSetMethods.unset(baseObject, baseOffset, i);
@@ -210,6 +211,7 @@ public final class UnsafeRow extends InternalRow implements Externalizable, Kryo
     Platform.putLong(baseObject, getFieldOffset(i), 0);
   }
 
+  /** UnsafeRow 也不支持 update  */
   @Override
   public void update(int ordinal, Object value) {
     throw new UnsupportedOperationException();
@@ -394,6 +396,7 @@ public final class UnsafeRow extends InternalRow implements Externalizable, Kryo
     }
   }
 
+  /** 低 32 位是 offset, 高 32 位是 String 的 size */
   @Override
   public UTF8String getUTF8String(int ordinal) {
     if (isNullAt(ordinal)) return null;
