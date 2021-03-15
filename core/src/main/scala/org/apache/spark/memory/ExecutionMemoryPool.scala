@@ -137,6 +137,7 @@ private[memory] class ExecutionMemoryPool(
       // (this happens if older tasks allocated lots of memory before N grew)
       if (toGrant < numBytes && curMem + toGrant < minMemoryPerTask) {
         logInfo(s"TID $taskAttemptId waiting for at least 1/2N of $poolName pool to be free")
+        /** 等着内存被释放 */
         lock.wait()
       } else {
         memoryForTask(taskAttemptId) += toGrant

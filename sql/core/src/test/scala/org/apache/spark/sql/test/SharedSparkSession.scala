@@ -67,6 +67,8 @@ trait SharedSparkSessionBase
     val conf = new SparkConf()
       .set("spark.hadoop.fs.file.impl", classOf[DebugFilesystem].getName)
       .set(UNSAFE_EXCEPTION_ON_MEMORY_LEAK, true)
+      .set("spark.ui.port", "4244")
+      .set("spark.driver.bindAddress", "127.0.0.1")
       .set(SQLConf.CODEGEN_FALLBACK.key, "false")
       .set(SQLConf.CODEGEN_FACTORY_MODE.key, CodegenObjectFactoryMode.CODEGEN_ONLY.toString)
       // Disable ConvertToLocalRelation for better test coverage. Test cases built on

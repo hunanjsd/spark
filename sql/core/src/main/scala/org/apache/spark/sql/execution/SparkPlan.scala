@@ -134,7 +134,7 @@ abstract class SparkPlan extends QueryPlan[SparkPlan] with Logging with Serializ
    */
   def longMetric(name: String): SQLMetric = metrics(name)
 
-  // TODO: Move to `DistributedPlan`
+  // TODO: Move to `DistributedPlan` 规定了当前 SparkPlan 的分区信息
   /** Specifies how data is partitioned across different nodes in the cluster. */
   def outputPartitioning: Partitioning = UnknownPartitioning(0) // TODO: WRONG WIDTH!
 

@@ -135,6 +135,7 @@ class Analyzer(
     maxIterations: Int)
   extends RuleExecutor[LogicalPlan] with CheckAnalysis with LookupCatalog {
 
+  /** Analyzer 主要做的就是将 catalog 中的信息嵌套到 LogicalPlan 中 */
   private val v1SessionCatalog: SessionCatalog = catalogManager.v1SessionCatalog
 
   override protected def isPlanIntegral(plan: LogicalPlan): Boolean = {
@@ -184,6 +185,7 @@ class Analyzer(
   def resolver: Resolver = conf.resolver
 
   /**
+   * batch 中 rule 的最大迭代次数
    * If the plan cannot be resolved within maxIterations, analyzer will throw exception to inform
    * user to increase the value of SQLConf.ANALYZER_MAX_ITERATIONS.
    */

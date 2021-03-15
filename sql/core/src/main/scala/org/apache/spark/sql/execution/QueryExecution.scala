@@ -68,6 +68,7 @@ class QueryExecution(
     }
   }
 
+  /** 执行 LogicalPlan 的 analyze 过程 */
   lazy val analyzed: LogicalPlan = executePhase(QueryPlanningTracker.ANALYSIS) {
     // We can't clone `logical` here, which will reset the `_analyzed` flag.
     sparkSession.sessionState.analyzer.executeAndCheck(logical, tracker)

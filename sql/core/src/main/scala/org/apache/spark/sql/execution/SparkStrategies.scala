@@ -60,6 +60,7 @@ case class PlanLater(plan: LogicalPlan) extends LeafExecNode {
   }
 }
 
+/** 这里的 SparkStrategies 定义的了 plan 方法 */
 abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
   self: SparkPlanner =>
 

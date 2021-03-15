@@ -57,6 +57,7 @@ private[spark] abstract class MemoryManager(
   onHeapStorageMemoryPool.incrementPoolSize(onHeapStorageMemory)
   onHeapExecutionMemoryPool.incrementPoolSize(onHeapExecutionMemory)
 
+  /** 默认堆外内存是不开启的 */
   protected[this] val maxOffHeapMemory = conf.get(MEMORY_OFFHEAP_SIZE)
   protected[this] val offHeapStorageMemory =
     (maxOffHeapMemory * conf.get(MEMORY_STORAGE_FRACTION)).toLong

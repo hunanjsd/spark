@@ -41,6 +41,8 @@ object SparkSQLExample {
       .appName("Spark SQL basic example")
       .master("local[2]")
       .config("spark.some.config.option", "some-value")
+      .config("spark.ui.port", "4244")
+      .config("spark.driver.bindAddress", "127.0.0.1")
       .getOrCreate()
 
     // For implicit conversions like converting RDDs to DataFrames
